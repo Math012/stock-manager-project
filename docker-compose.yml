@@ -1,0 +1,178 @@
+services:
+  db_authentication:
+    image: postgres:latest
+    container_name: db_authentication
+    environment:
+      - POSTGRES_DB=db_user_stock
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db_catalog:
+    image: postgres:latest
+    container_name: db_catalog
+    environment:
+      - POSTGRES_DB=db_catalog_stock
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    ports:
+      - "5433:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db_inventory:
+    image: postgres:latest
+    container_name: db_inventory
+    environment:
+      - POSTGRES_DB=db_inventory_stock
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    ports:
+      - "5434:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db_transaction:
+    image: mongo:latest
+    container_name: db_transaction
+    environment:
+      - MONGO_INITDB_DATABASE=db_transaction_stock
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+  kafka:
+    container_name: kafka
+    image: apache/kafka-native
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_LISTENERS: CONTROLLER://localhost:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: HOST://localhost:9092,DOCKER://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9091
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - backend
+
+  kafka-ui:
+    image: kafbat/kafka-ui:main
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+    networks:
+      - backend
+    depends_on:
+      - kafka
+
+  order-service:
+    image: math012i/order-service
+    ports:
+      - "8082:8082"
+    networks:
+      - backend
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - USER_URL=authentication-service:8092/authentication/find
+
+  stock-bff-service:
+    image: math012i/bff-service
+    ports:
+      - "8085:8085"
+    networks:
+      - backend
+    environment:
+      - CATALOG_URL=catalog-service:8081/catalog
+      - AUTHENTICATION_URL=authentication-service:8092/authentication
+      - ORDER_URL=order-service:8082/
+
+  payment-service:
+    image: math012i/payment-service
+    ports:
+      - "8084:8084"
+    networks:
+      - backend
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - SPRING_DATA_MONGODB_URI=mongodb://db_transaction:27017/db_transaction_stock
+      - SPRING_DATA_MONGODB_DATABASE=db_transaction_stock
+    depends_on:
+      db_transaction:
+        condition: service_healthy
+
+  inventory-service:
+    image: math012i/inventory-service
+    ports:
+      - "8093:8093"
+    networks:
+      - backend
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db_inventory:5432/db_inventory_stock
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=create
+    depends_on:
+      db_inventory:
+        condition: service_healthy
+
+  catalog-service:
+    image: math012i/catalog-service
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db_catalog:5432/db_catalog_stock
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=create
+    depends_on:
+      db_catalog:
+        condition: service_healthy
+
+  authentication-service:
+    image: math012i/authentication-service:latest
+    ports:
+      - "8092:8092"
+    networks:
+      - backend
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db_authentication:5432/db_user_stock
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=create
+      - SECRET_KEY=ebca22c718d8a0107f9f81c2f1245d73
+    depends_on:
+      db_authentication:
+        condition: service_healthy
+
+networks:
+  backend:
+    driver: bridge
