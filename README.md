@@ -98,9 +98,16 @@ Exemplos de consulta:
       ``` bash
       docker-compose restart order-service inventory-service payment-service
       ```
+
       
 ## Via Docker Hub
 
+### Aviso
+- O projeto inclui um script SQL para inserir 1.000 registros automaticamente nos bancos de dados dos serviços **catalog-service** e **inventory-service**.
+- Ao executar o projeto via Docker Hub, essa inserção ocorrerá de forma automática, caso queira desabilitar esse processo, recomendo rodar o projeto via [via docker-compose.yml local](#via-docker-composeyml-local) e remover os arquivos
+	- **catalog-service/src/main/resources/import.sql**
+	- **inventory-service/src/main/resources/import.sql**
+   
 - Todos os serviços estão disponíveis no docker-hub
 
 - Arquivo docker-compose.yml preenchido.
@@ -304,7 +311,6 @@ networks:
 
 - Arquivo modelo para o docker-compose.yml.
   - é possível alterar cada variável (=${}) via hardcode ou criando um arquivo ".env" na raiz da pasta onde estão os projetos
-
 
 - docker-compose.yml
 
