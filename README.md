@@ -82,7 +82,7 @@ Exemplos de consulta:
 - banco de dados do payment-service
   
 
-<img width="700" height="600" alt="image" src="https://github.com/user-attachments/assets/9d1ad28f-d757-4a10-9024-ac5483dc35aa" />
+<img width="400" height="300" alt="image" src="https://github.com/user-attachments/assets/9d1ad28f-d757-4a10-9024-ac5483dc35aa" />
 
 
 
