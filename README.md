@@ -4,6 +4,8 @@
 
 
 <img width="700" height="600" alt="image" src="https://github.com/user-attachments/assets/befd72f8-ad2b-4aec-86d8-ae2e1067d6ee" />
+
+
 ## Resumo
 
 Este projeto é uma plataforma de e-commerce modular e escalável, construída sobre arquitetura de microsserviços.
